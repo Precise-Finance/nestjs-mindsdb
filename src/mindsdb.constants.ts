@@ -1,0 +1,1 @@
+export const MINDSDB_MODELS = 'MINDSDB_MODELS';
