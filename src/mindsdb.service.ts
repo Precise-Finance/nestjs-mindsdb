@@ -23,6 +23,7 @@ export class MindsdbService implements OnModuleInit {
   async onModuleInit() {
     this.configService.get<string>("MINDSDB_API_KEY");
     await this.Client.connect({
+      host: this.configService.get("MINDSDB_HOST") ?? undefined,
       user: this.configService.get("MINDSDB_USER"),
       password: this.configService.get("MINDSDB_PASSWORD"),
     });

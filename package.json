@@ -1,6 +1,6 @@
 {
-  "name": "@precise/nestjs-mindsdb",
-  "version": "1.0.15",
+  "name": "nestjs-mindsdb",
+  "version": "1.1.0",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
