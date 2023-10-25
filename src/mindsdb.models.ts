@@ -7,9 +7,8 @@ import {
   TrainingOptions,
 } from "@precise/mindsdb-js-sdk/dist/models/trainingOptions";
 import { PredictMindsdbDto } from "./dto/predict-mindsdb.dto";
-import { AdjustMindsdbDto } from "./dto/adjust-mindsdb.dto";
-import * as mysql from 'mysql';
-
+import { FinetuneMindsdbDto } from "./dto/finetune-mindsdb.dto";
+import * as mysql from "mysql";
 
 export enum Granularity {
   day = "day",
@@ -34,27 +33,35 @@ export class IModel {
     join: string;
     limit?: number;
   };
-  adjustOptions: AdjustOptions;
+  finetuneOptions: AdjustOptions;
 }
 
-export function getAdjustOptions(model: IModel, adjust: AdjustMindsdbDto) {
+export function getFinetuneOptions(
+  model: IModel,
+  finetune?: FinetuneMindsdbDto
+): AdjustOptions {
   return {
-    select: adjust.select ?? model.adjustOptions.select,
-    using: adjust.using ?? model.adjustOptions.using,
+    select: finetune.params
+      ? queryReplacer(
+          finetune?.select ?? model.finetuneOptions.select,
+          finetune.params
+        ) as string
+      : finetune?.select ?? model.finetuneOptions.select,
+    using: finetune?.using ?? model.finetuneOptions.using,
+    integration: model.integration ?? model.finetuneOptions.integration,
   };
 }
 
 export function getPredictOptions(
   model: IModel,
-  query: PredictMindsdbDto
+  query?: PredictMindsdbDto
 ): QueryOptions | BatchQueryOptions {
   return {
-    join: query.join ?? model.predictOptions.join,
-    where:
-      query.where ?? query.params
-        ? queryReplacer(model.predictOptions.where, query.params)
-        : model.predictOptions.where,
-    limit: query.limit ?? model.predictOptions.limit,
+    join: query?.join ?? model.predictOptions.join,
+    where: query?.params
+      ? queryReplacer(query.where ?? model.predictOptions.where, query?.params)
+      : query.where ?? model.predictOptions.where,
+    limit: query?.limit ?? model.predictOptions.limit,
   };
 }
 

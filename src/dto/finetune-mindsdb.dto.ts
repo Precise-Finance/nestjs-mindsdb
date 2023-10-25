@@ -2,7 +2,7 @@ import { IsOptional } from 'class-validator';
 import { Expose } from 'class-transformer';
 import { JsonValue } from '@precise/mindsdb-js-sdk/dist/util/json';
 
-export class AdjustMindsdbDto {
+export class FinetuneMindsdbDto {
   /** SELECT SQL statement to use for selecting data. */
   @Expose()
   @IsOptional()
@@ -11,4 +11,7 @@ export class AdjustMindsdbDto {
   @Expose()
   @IsOptional()
   using?: Record<string, JsonValue>;
+  @Expose()
+  @IsOptional()
+  params?: Record<string, string | number | Date>;
 }

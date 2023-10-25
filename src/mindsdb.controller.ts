@@ -13,12 +13,12 @@ import {
 import { MindsdbService } from './mindsdb.service';
 import { CreateMindsdbDto } from './dto/create-mindsdb.dto';
 import { PredictMindsdbDto } from './dto/predict-mindsdb.dto';
-import { AdjustMindsdbDto } from './dto/adjust-mindsdb.dto';
+import { FinetuneMindsdbDto } from './dto/finetune-mindsdb.dto';
 import { RetrainMindsDbDto } from './dto';
 
 // @Controller('mindsdb')
 export abstract class AbstractMindsdbController {
-  constructor(private readonly mindsdbService: MindsdbService) {}
+  constructor(protected readonly mindsdbService: MindsdbService) {}
   /**
    *
    *
@@ -63,9 +63,9 @@ export abstract class AbstractMindsdbController {
   @Patch(':id')
   adjust(
     @Param('id') id: string,
-    @Body() adjustMindsdbDto: AdjustMindsdbDto,
+    @Body() finetuneDto: FinetuneMindsdbDto,
   ) {
-    return this.mindsdbService.adjust(id, adjustMindsdbDto);
+    return this.mindsdbService.finetune(id, finetuneDto);
   }
 
   @Delete(':id')

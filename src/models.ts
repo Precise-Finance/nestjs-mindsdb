@@ -2,9 +2,9 @@ import { Granularity, IModel } from "./mindsdb.models";
 
 export const Models = new Map<string, IModel>([
   [
-    'balance_auto',
+    "balance_auto",
     {
-      name: 'balance_auto',
+      name: "balance_auto",
       granularity: Granularity.day,
       targetColumn: "sum",
       predictOptions: {
@@ -21,15 +21,16 @@ export const Models = new Map<string, IModel>([
         //   submodels: [{ module: 'GluonTSMixer', args: {} }],
         // },
       },
-      adjustOptions: {
-        select: "select * from enriched_balance",
+      finetuneOptions: {
+        select: "select * from enriched_balance where customerId = $CUSTOMER_ID$ and date > $DATE$",
+        integration: undefined,
       },
     },
   ],
   [
-    'balance_gluon',
+    "balance_gluon",
     {
-      name: 'balance_gluon',
+      name: "balance_gluon",
       granularity: Granularity.day,
       targetColumn: "sum",
       view: {
@@ -50,8 +51,9 @@ export const Models = new Map<string, IModel>([
         //   submodels: [{ module: 'GluonTSMixer', args: {} }],
         // },
       },
-      adjustOptions: {
+      finetuneOptions: {
         select: "select * from balance_gluon_enriched_balance",
+        integration: undefined,
       },
     },
   ],

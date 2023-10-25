@@ -1,4 +1,4 @@
-import { Inject, Injectable, OnModuleInit } from "@nestjs/common";
+import { Inject, Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { CreateMindsdbDto } from "./dto/create-mindsdb.dto";
 import { RetrainMindsDbDto } from "./dto/retrain-mindsdb.dto";
 import MindsDB from "@precise/mindsdb-js-sdk";
@@ -7,26 +7,38 @@ import {
   QueryOptions,
 } from "@precise/mindsdb-js-sdk/dist/models/queryOptions";
 import { ConfigService } from "@nestjs/config";
-import { IModel, getAdjustOptions, getPredictOptions } from "./mindsdb.models";
+import {
+  IModel,
+  getFinetuneOptions,
+  getPredictOptions,
+} from "./mindsdb.models";
 import { PredictMindsdbDto } from "./dto/predict-mindsdb.dto";
-import { AdjustMindsdbDto } from "./dto/adjust-mindsdb.dto";
+import { FinetuneMindsdbDto } from "./dto/finetune-mindsdb.dto";
 import { MINDSDB_MODELS } from "./mindsdb.constants";
 
 @Injectable()
 export class MindsdbService implements OnModuleInit {
   private project: string;
-  constructor(private readonly configService: ConfigService,
-    @Inject(MINDSDB_MODELS) private readonly models: Map<string, IModel>) {
+  private readonly logger = new Logger(MindsdbService.name);
+  constructor(
+    private readonly configService: ConfigService,
+    @Inject(MINDSDB_MODELS) private readonly models: Map<string, IModel>
+  ) {
     this.project = this.configService.get<string>("NODE_ENV") ?? "mindsdb";
   }
 
   async onModuleInit() {
     this.configService.get<string>("MINDSDB_API_KEY");
-    await this.Client.connect({
-      host: this.configService.get("MINDSDB_HOST") ?? undefined,
-      user: this.configService.get("MINDSDB_USER"),
-      password: this.configService.get("MINDSDB_PASSWORD"),
-    });
+    try {
+      await this.Client.connect({
+        host: this.configService.get("MINDSDB_HOST") ?? undefined,
+        user: this.configService.get("MINDSDB_USER"),
+        password: this.configService.get("MINDSDB_PASSWORD"),
+        managed: this.configService.get("MINDSDB_MANAGED") ?? undefined,
+      });
+    } catch (error) {
+      this.logger.error(error);
+    }
   }
 
   public get Client() {
@@ -41,6 +53,10 @@ export class MindsdbService implements OnModuleInit {
     this.project = project;
   }
 
+  public get Models() {
+    return this.models;
+  }
+
   async create(createMindsdbDto: CreateMindsdbDto) {
     if (
       await this.Client.Models.getModel(createMindsdbDto.name, this.project)
@@ -49,7 +65,11 @@ export class MindsdbService implements OnModuleInit {
     }
     const model = this.models.get(createMindsdbDto.name);
     if (model.view) {
-      if ((await this.Client.Views.getAllViews(this.project)).findIndex((v) => v.name === model.view.name) === -1) {
+      if (
+        (await this.Client.Views.getAllViews(this.project)).findIndex(
+          (v) => v.name === model.view.name
+        ) === -1
+      ) {
         await this.Client.Views.createView(
           model.view.name ?? model.name,
           this.project,
@@ -78,7 +98,11 @@ export class MindsdbService implements OnModuleInit {
 
   async predict(id: string, query: PredictMindsdbDto) {
     const modelDef = this.models.get(id);
-    const model = await this.Client.Models.getModel(id, this.project, query.version);
+    const model = await this.Client.Models.getModel(
+      id,
+      this.project,
+      query.version
+    );
     Object.keys(query).forEach((key) => {
       if (query[key] === undefined) {
         delete query[key];
@@ -93,18 +117,23 @@ export class MindsdbService implements OnModuleInit {
     }
   }
 
-  async adjust(id: string, adjust: AdjustMindsdbDto) {
+  async finetune(id: string, finetune?: FinetuneMindsdbDto) {
     const modelDef = this.models.get(id);
     const model = await this.Client.Models.getModel(id, this.project);
     return model.adjust(
       modelDef.integration ?? this.project,
-      getAdjustOptions(modelDef, adjust)
+      getFinetuneOptions(modelDef, finetune)
     );
   }
 
   retrain(id: string, retrain?: RetrainMindsDbDto) {
     const modelDef = this.models.get(id);
-    return this.Client.Models.retrainModel(id, modelDef.targetColumn, this.project, retrain);
+    return this.Client.Models.retrainModel(
+      id,
+      modelDef.targetColumn,
+      this.project,
+      retrain
+    );
   }
 
   remove(name: string) {
