@@ -1,6 +1,6 @@
 {
-  "name": "@precise/nestjs-mindsdb",
-  "version": "1.1.8",
+  "name": "nestjs-mindsdb",
+  "version": "1.2.2",
   "description": "",
   "main": "dist/index.js",
   "scripts": {
@@ -17,9 +17,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@precise/mindsdb-js-sdk": "^2.0.8",
+    "@precise/mindsdb-js-sdk": "^2.2.2",
     "mysql": "^2.18.1"
   },
+  "keywords": [
+    "MindsDb",
+    "mindsdb-sdk",
+    "nest",
+    "nestjs"
+  ],
   "devDependencies": {
     "@types/mysql": "^2.15.21",
     "@nestjs/common": "^9.0.0",

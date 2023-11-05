@@ -18,24 +18,72 @@ export enum Granularity {
   year = "year",
 }
 
+/**
+ * Interface for a MindsDB model
+ */
 export class IModel {
+  /**
+   * The granularity of the model
+   */
   granularity?: Granularity;
+  /**
+   * The name of the model
+   */
   name: string;
+  /**
+   * The target column of the model
+   */
   targetColumn: string;
+  /**
+   * The integration used by the model
+   */
   integration?: string;
+  /**
+   * The view used by the model
+   */
   view?: {
+    /**
+     * The select statement of the view
+     */
     select: string;
+    /**
+     * The name of the view
+     */
     name?: string;
   };
+  /**
+   * The training options of the model
+   */
   trainingOptions: TrainingOptions;
+  /**
+   * The prediction options of the model
+   */
   predictOptions: {
+    /**
+     * The where clause of the prediction
+     */
     where: string | Array<string>;
+    /**
+     * The join statement of the prediction
+     */
     join: string;
+    /**
+     * The limit of the prediction
+     */
     limit?: number;
   };
+  /**
+   * The fine-tuning options of the model
+   */
   finetuneOptions: AdjustOptions;
 }
 
+/**
+ * Returns the options for finetuning a MindsDB model.
+ * @param model - The MindsDB model to finetune.
+ * @param finetune - The finetune options to use.
+ * @returns The options for finetuning the MindsDB model.
+ */
 export function getFinetuneOptions(
   model: IModel,
   finetune?: FinetuneMindsdbDto
@@ -52,6 +100,12 @@ export function getFinetuneOptions(
   };
 }
 
+/**
+ * Returns the query options for a MindsDB prediction request.
+ * @param model - The MindsDB model to use for the prediction.
+ * @param query - The query parameters for the prediction request.
+ * @returns The query options for the prediction request.
+ */
 export function getPredictOptions(
   model: IModel,
   query?: PredictMindsdbDto
@@ -65,6 +119,12 @@ export function getPredictOptions(
   };
 }
 
+/**
+ * Replaces placeholders in a SQL query string with corresponding values from an object of query parameters.
+ * @param query - The SQL query string or an array of SQL query strings to replace placeholders in.
+ * @param queryParams - An object containing key-value pairs of query parameter names and their corresponding values.
+ * @returns The SQL query string with placeholders replaced by their corresponding values.
+ */
 const queryReplacer = (
   query: string | Array<string>,
   queryParams: Record<string, string | number | Date>
