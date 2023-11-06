@@ -9,14 +9,25 @@ import {
   ValidationPipe,
   Query,
   Put,
-} from '@nestjs/common';
-import { MindsdbService } from './mindsdb.service';
-import { CreateMindsdbDto } from './dto/create-mindsdb.dto';
-import { PredictMindsdbDto } from './dto/predict-mindsdb.dto';
-import { FinetuneMindsdbDto } from './dto/finetune-mindsdb.dto';
-import { RetrainMindsDbDto } from './dto';
+  UseInterceptors,
+  UploadedFile,
+  UploadedFiles,
+} from "@nestjs/common";
+import {
+  FileFieldsInterceptor,
+  FileInterceptor,
+} from "@nestjs/platform-express";
 
-// @Controller('mindsdb')
+import { MindsdbService } from "./mindsdb.service";
+import { CreateMindsdbDto } from "./dto/create-mindsdb.dto";
+import { PredictMindsdbDto } from "./dto/predict-mindsdb.dto";
+import { FinetuneMindsdbDto } from "./dto/finetune-mindsdb.dto";
+import { RetrainMindsDbDto } from "./dto";
+import { ApiConsumes, ApiBody, ApiTags } from "@nestjs/swagger";
+import { Express } from "express";
+import { Readable } from "stream";
+
+@ApiTags("mindsdb")
 export abstract class AbstractMindsdbController {
   constructor(protected readonly mindsdbService: MindsdbService) {}
   /**
@@ -31,16 +42,16 @@ export abstract class AbstractMindsdbController {
     return this.mindsdbService.create(createMindsdbDto);
   }
 
-  @Post(':id/predict')
+  @Post(":id/predict")
   predict(
     @Param(
-      'id',
+      "id",
       new ValidationPipe({
         transform: true,
-      }),
+      })
     )
     id: string,
-    @Body() predictMindsdbDto: PredictMindsdbDto,
+    @Body() predictMindsdbDto: PredictMindsdbDto
   ) {
     return this.mindsdbService.predict(id, predictMindsdbDto);
   }
@@ -50,26 +61,120 @@ export abstract class AbstractMindsdbController {
     return this.mindsdbService.findAll();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string, @Query('version') version?: number) {
+  @Get(":id")
+  findOne(@Param("id") id: string, @Query("version") version?: number) {
     return this.mindsdbService.findOne(id);
   }
 
-  @Put(':id')
-  retrain(@Param('id') id: string, @Body() retrainMindsDbDto: RetrainMindsDbDto) {
+  @Put(":id")
+  retrain(
+    @Param("id") id: string,
+    @Body() retrainMindsDbDto: RetrainMindsDbDto
+  ) {
     return this.mindsdbService.retrain(id, retrainMindsDbDto);
   }
 
-  @Patch(':id')
-  adjust(
-    @Param('id') id: string,
-    @Body() finetuneDto: FinetuneMindsdbDto,
-  ) {
+  @Patch(":id")
+  adjust(@Param("id") id: string, @Body() finetuneDto: FinetuneMindsdbDto) {
     return this.mindsdbService.finetune(id, finetuneDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id') id: string) {
+  @Delete(":id")
+  remove(@Param("id") id: string) {
     return this.mindsdbService.remove(id);
+  }
+
+  @Post("ml_engine")
+  @ApiConsumes("multipart/form-data")
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: "code", maxCount: 1 },
+      { name: "requirements", maxCount: 1 },
+    ])
+  )
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        name: {
+          type: 'string',
+        },
+        code: {
+          type: "string",
+          format: "binary",
+        },
+        requirements: {
+          type: "string",
+          format: "binary",
+        },
+      },
+      required: ['name', 'code', 'requirements'], // This makes all fields required
+    },
+  })
+  createMLEngine(
+    @Body('name') name: string,
+    @UploadedFiles()
+    files: {
+      code?: Express.Multer.File[];
+      requirements?: Express.Multer.File[];
+    }
+  ) {
+    if (!files.code || !files.requirements) {
+      throw new Error("Missing code or requirements file");
+    }
+    const codeStream = Readable.from(files.code[0].buffer);
+    const requirementsStream = Readable.from(files.requirements[0].buffer);
+
+    return this.mindsdbService.createMLEngine(
+      name,
+      codeStream,
+      requirementsStream
+    );
+  }
+
+  @Put("ml_engine/:id")
+  @ApiConsumes("multipart/form-data")
+  @UseInterceptors(
+    FileFieldsInterceptor([
+      { name: "code", maxCount: 1 },
+      { name: "requirements", maxCount: 1 },
+    ])
+  )
+  @ApiBody({
+    schema: {
+      type: "object",
+      properties: {
+        code: {
+          type: "string",
+          format: "binary",
+        },
+        requirements: {
+          type: "string",
+          format: "binary",
+        },
+      },
+      required: ['code', 'requirements'], // This makes all fields required
+
+    },
+  })
+  updateMLEngine(
+    @Param("id") id: string,
+    @UploadedFiles()
+    files: {
+      code?: Express.Multer.File[];
+      requirements?: Express.Multer.File[];
+    }
+  ) {
+    if (!files.code || !files.requirements) {
+      throw new Error("Missing code or requirements file");
+    }
+    const codeStream = Readable.from(files.code[0].buffer);
+    const requirementsStream = Readable.from(files.requirements[0].buffer);
+
+    return this.mindsdbService.updateMLEngine(
+      id,
+      codeStream,
+      requirementsStream
+    );
   }
 }
