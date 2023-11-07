@@ -67,7 +67,7 @@ export class MindsdbService implements OnModuleInit {
     const model = this.models.get(createMindsdbDto.name);
     if (existingModel && existingModel.tag === model.tag) {
       throw new Error(`Model ${createMindsdbDto.name} already exists`);
-    } else if (["complete", "error"].includes(existingModel?.status ?? "")) {
+    } else if (!["complete", "error"].includes(existingModel?.status ?? "")) {
       throw new Error(
         `Model ${createMindsdbDto.name} already exists and is still training`
       );
