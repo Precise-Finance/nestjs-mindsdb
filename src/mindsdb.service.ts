@@ -60,13 +60,21 @@ export class MindsdbService implements OnModuleInit {
   }
 
   async create(createMindsdbDto: CreateMindsdbDto) {
-    const existingModel = await this.Client.Models.getModel(createMindsdbDto.name, this.project);
+    const existingModel = await this.Client.Models.getModel(
+      createMindsdbDto.name,
+      this.project
+    );
     const model = this.models.get(createMindsdbDto.name);
     if (existingModel && existingModel.tag === model.tag) {
       throw new Error(`Model ${createMindsdbDto.name} already exists`);
-    }
-    else if (existingModel && existingModel.tag !== model.tag) {
-      this.logger.log(`Model ${createMindsdbDto.name} already exists with different tag, retraining...`);
+    } else if (["complete", "error"].includes(existingModel?.status ?? "")) {
+      throw new Error(
+        `Model ${createMindsdbDto.name} already exists and is still training`
+      );
+    } else if (existingModel && existingModel.tag !== model.tag) {
+      this.logger.log(
+        `Model ${createMindsdbDto.name} already exists with different tag, retraining...`
+      );
       return this.retrain(createMindsdbDto.name);
     }
     if (model.view) {
@@ -81,6 +89,8 @@ export class MindsdbService implements OnModuleInit {
         );
       }
     }
+
+    this.logger.log(`Creating model ${createMindsdbDto.name}...`);
 
     return await this.Client.Models.trainModel(
       model.name,
@@ -104,7 +114,11 @@ export class MindsdbService implements OnModuleInit {
       throw new Error(`Model definition for ${id} not found`);
     }
 
-    const model = await this.Client.Models.getModel(id, this.project, predictMindsdbDto.version);
+    const model = await this.Client.Models.getModel(
+      id,
+      this.project,
+      predictMindsdbDto.version
+    );
     if (!model) {
       throw new Error(`Model ${id} does not exist`);
     }
@@ -118,7 +132,9 @@ export class MindsdbService implements OnModuleInit {
         getPredictOptions(modelDef, cleanedQuery) as BatchQueryOptions
       );
     } else {
-      return model.query(getPredictOptions(modelDef, cleanedQuery) as QueryOptions);
+      return model.query(
+        getPredictOptions(modelDef, cleanedQuery) as QueryOptions
+      );
     }
   }
 
