@@ -60,14 +60,23 @@ export class MindsdbService implements OnModuleInit {
   }
 
   async create(createMindsdbDto: CreateMindsdbDto) {
+    const model = this.models.get(createMindsdbDto.name);
+    // If there is no model in the cache, you should handle that case as well
+    if (!model) {
+      throw new Error(
+        `Model data for ${createMindsdbDto.name} is not available.`
+      );
+    }
     const existingModel = await this.Client.Models.getModel(
       createMindsdbDto.name,
       this.project
     );
-    const model = this.models.get(createMindsdbDto.name);
     if (existingModel && existingModel.tag === model.tag) {
       throw new Error(`Model ${createMindsdbDto.name} already exists`);
-    } else if (!["complete", "error"].includes(existingModel?.status ?? "")) {
+    } else if (
+      existingModel &&
+      !["complete", "error"].includes(existingModel.status)
+    ) {
       throw new Error(
         `Model ${createMindsdbDto.name} already exists and is still training`
       );
