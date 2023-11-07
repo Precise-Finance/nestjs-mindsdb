@@ -1,6 +1,6 @@
 import { IsOptional } from 'class-validator';
 import { Expose } from 'class-transformer';
-import { JsonValue } from '@precise/mindsdb-js-sdk/dist/util/json';
+import { JsonValue } from 'mindsdb-js-sdk/dist/util/json';
 
 export class FinetuneMindsdbDto {
   /** SELECT SQL statement to use for selecting data. */

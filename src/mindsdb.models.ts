@@ -1,11 +1,11 @@
 import {
   BatchQueryOptions,
   QueryOptions,
-} from "@precise/mindsdb-js-sdk/dist/models/queryOptions";
+} from "mindsdb-js-sdk/dist/models/queryOptions";
 import {
   AdjustOptions,
   TrainingOptions,
-} from "@precise/mindsdb-js-sdk/dist/models/trainingOptions";
+} from "mindsdb-js-sdk/dist/models/trainingOptions";
 import { PredictMindsdbDto } from "./dto/predict-mindsdb.dto";
 import { FinetuneMindsdbDto } from "./dto/finetune-mindsdb.dto";
 import * as mysql from "mysql";
@@ -55,6 +55,11 @@ export class IModel {
    * The training options of the model
    */
   trainingOptions: TrainingOptions;
+
+  /**
+   * The version of the model
+   */
+  tag: string;
   /**
    * The prediction options of the model
    */
@@ -76,6 +81,27 @@ export class IModel {
    * The fine-tuning options of the model
    */
   finetuneOptions: AdjustOptions;
+}
+
+/**
+ * Returns the options for training a MindsDB model.
+ * @param model - The MindsDB model to finetune.
+ * @param options - The training options to use.
+ * @returns The options for training the MindsDB model.
+ */
+export function getTrainingOptions(
+  model: IModel,
+  options?: TrainingOptions
+): AdjustOptions {
+  const using = {
+    ...(model.trainingOptions.using || {}),
+    tag: model.tag,
+  }
+  return {
+    select: options.select ?? model.trainingOptions.select,
+    using: options?.using ? { ...options, tag: model.tag } : using,
+    integration: model.integration ?? model.finetuneOptions.integration,
+  };
 }
 
 /**

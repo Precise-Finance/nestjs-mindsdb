@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { CreateMindsdbDto } from "./dto/create-mindsdb.dto";
 import { RetrainMindsDbDto } from "./dto/retrain-mindsdb.dto";
-import MindsDB from "mindsdb-js-sdk";
+import MindsDB, { TrainingOptions } from "mindsdb-js-sdk";
 import {
   BatchQueryOptions,
   QueryOptions,
@@ -11,6 +11,7 @@ import {
   IModel,
   getFinetuneOptions,
   getPredictOptions,
+  getTrainingOptions,
 } from "./mindsdb.models";
 import { PredictMindsdbDto } from "./dto/predict-mindsdb.dto";
 import { FinetuneMindsdbDto } from "./dto/finetune-mindsdb.dto";
@@ -60,15 +61,14 @@ export class MindsdbService implements OnModuleInit {
 
   async create(createMindsdbDto: CreateMindsdbDto) {
     const existingModel = await this.Client.Models.getModel(createMindsdbDto.name, this.project);
-    if (existingModel) {
+    const model = this.models.get(createMindsdbDto.name);
+    if (existingModel && existingModel.tag === model.tag) {
       throw new Error(`Model ${createMindsdbDto.name} already exists`);
     }
-
-    const model = this.models.get(createMindsdbDto.name);
-    if (!model) {
-      throw new Error(`Model definition for ${createMindsdbDto.name} not found`);
+    else if (existingModel && existingModel.tag !== model.tag) {
+      this.logger.log(`Model ${createMindsdbDto.name} already exists with different tag, retraining...`);
+      return this.retrain(createMindsdbDto.name);
     }
-
     if (model.view) {
       const allViews = await this.Client.Views.getAllViews(this.project);
       const viewExists = allViews.some((v) => v.name === model.view.name);
@@ -81,14 +81,11 @@ export class MindsdbService implements OnModuleInit {
       }
     }
 
-    return this.Client.Models.trainModel(
+    return await this.Client.Models.trainModel(
       model.name,
       model.targetColumn,
       this.project,
-      {
-        integration: this.project,
-        ...model.trainingOptions,
-      }
+      getTrainingOptions(model)
     );
   }
 
@@ -151,7 +148,7 @@ export class MindsdbService implements OnModuleInit {
       id,
       modelDef.targetColumn,
       this.project,
-      retrain
+      getTrainingOptions(modelDef, retrain)
     );
   }
 

@@ -4,6 +4,7 @@ export const Models = new Map<string, IModel>([
   [
     "balance_auto",
     {
+      tag: "v1.0.0",
       name: "balance_auto",
       granularity: Granularity.day,
       targetColumn: "sum",
@@ -30,6 +31,7 @@ export const Models = new Map<string, IModel>([
   [
     "balance_gluon",
     {
+      tag: "v1.0.0",
       name: "balance_gluon",
       granularity: Granularity.day,
       targetColumn: "sum",
