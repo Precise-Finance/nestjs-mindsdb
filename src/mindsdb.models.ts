@@ -98,7 +98,7 @@ export function getTrainingOptions(
     tag: model.tag,
   }
   return {
-    select: options.select ?? model.trainingOptions.select,
+    select: options?.select ?? model.trainingOptions.select,
     using: options?.using ? { ...options, tag: model.tag } : using,
     integration: model.integration ?? model.finetuneOptions.integration,
   };
@@ -118,7 +118,7 @@ export function getFinetuneOptions(
     select: finetune.params
       ? queryReplacer(
           finetune?.select ?? model.finetuneOptions.select,
-          finetune.params
+          finetune?.params
         ) as string
       : finetune?.select ?? model.finetuneOptions.select,
     using: finetune?.using ?? model.finetuneOptions.using,

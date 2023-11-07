@@ -73,6 +73,7 @@ export class MindsdbService implements OnModuleInit {
       const allViews = await this.Client.Views.getAllViews(this.project);
       const viewExists = allViews.some((v) => v.name === model.view.name);
       if (!viewExists) {
+        this.logger.log(`View ${model.view.name} does not exist, creating...`);
         await this.Client.Views.createView(
           model.view.name ?? model.name,
           this.project,
