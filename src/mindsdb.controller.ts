@@ -84,6 +84,35 @@ export abstract class AbstractMindsdbController {
     return this.mindsdbService.remove(id);
   }
 
+  @Post('callbacks')
+  @ApiBody({
+    description: 'Object containing the URL to create a new callback',
+    required: true,
+    schema: {
+      type: 'object',
+      properties: {
+        url: {
+          type: 'string',
+          example: 'http://example.com/callback',
+        },
+      },
+    },
+  })
+  
+  async createCallback(@Body('url') url: string) {
+    return this.mindsdbService.Client.Callbacks.createCallback(url);
+  }
+
+  @Delete('callbacks/:id')
+  async deleteCallback(@Param('id') id: number) {
+    return this.mindsdbService.Client.Callbacks.deleteCallback(+id);
+  }
+
+  @Get('callbacks')
+  async getCallbacks() {
+    return this.mindsdbService.Client.Callbacks.getCallbacks();
+  }
+
   @Post("ml_engine")
   @ApiConsumes("multipart/form-data")
   @UseInterceptors(
