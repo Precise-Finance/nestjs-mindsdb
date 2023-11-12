@@ -152,11 +152,11 @@ export class MindsdbService implements OnModuleInit {
 
     if (modelDef.predictOptions.join || cleanedQuery.join) {
       return model.batchQuery(
-        getPredictOptions(modelDef, cleanedQuery) as BatchQueryOptions
+        getPredictOptions(modelDef, `${this.IntegrationPrefix}${modelDef.integration}`,cleanedQuery) as BatchQueryOptions
       );
     } else {
       return model.query(
-        getPredictOptions(modelDef, cleanedQuery) as QueryOptions
+        getPredictOptions(modelDef, `${this.IntegrationPrefix}${modelDef.integration}`, cleanedQuery) as QueryOptions
       );
     }
   }

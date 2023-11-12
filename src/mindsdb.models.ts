@@ -136,10 +136,11 @@ export function getFinetuneOptions(
  */
 export function getPredictOptions(
   model: IModel,
+  integration: string,
   query?: PredictMindsdbDto
 ): QueryOptions | BatchQueryOptions {
   return {
-    join: query?.join ?? model.predictOptions.join,
+    join: query?.join?.replace('$INTEGRATION$', integration) ?? model.predictOptions.join.replace('$INTEGRATION$', integration),
     where: query?.params
       ? queryReplacer(query.where ?? model.predictOptions.where, query?.params)
       : query.where ?? model.predictOptions.where,
