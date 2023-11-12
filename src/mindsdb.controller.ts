@@ -12,6 +12,7 @@ import {
   UseInterceptors,
   UploadedFile,
   UploadedFiles,
+  Logger,
 } from "@nestjs/common";
 import {
   FileFieldsInterceptor,
@@ -29,6 +30,7 @@ import { Readable } from "stream";
 
 @ApiTags("mindsdb")
 export abstract class AbstractMindsdbController {
+  private readonly logger = new Logger(AbstractMindsdbController.name);
   constructor(protected readonly mindsdbService: MindsdbService) {}
   /**
    *
@@ -59,6 +61,13 @@ export abstract class AbstractMindsdbController {
   @Get()
   findAll() {
     return this.mindsdbService.findAll();
+  }
+
+  @Get('callbacks')
+  async getCallbacks() {
+    const result = await this.mindsdbService.Client.Callbacks.getCallbacks();
+    this.logger.log({ message: `getCallbacks returned with ${result?.length}`, result });
+    return result;
   }
 
   @Get(":id")
@@ -106,11 +115,6 @@ export abstract class AbstractMindsdbController {
   @Delete('callbacks/:id')
   async deleteCallback(@Param('id') id: number) {
     return this.mindsdbService.Client.Callbacks.deleteCallback(+id);
-  }
-
-  @Get('callbacks')
-  async getCallbacks() {
-    return this.mindsdbService.Client.Callbacks.getCallbacks();
   }
 
   @Post("ml_engine")

@@ -21,12 +21,14 @@ import { Readable } from "stream";
 @Injectable()
 export class MindsdbService implements OnModuleInit {
   private project: string;
+  private projectAsIntegrationPrefix = false;
   private readonly logger = new Logger(MindsdbService.name);
   constructor(
     private readonly configService: ConfigService,
     @Inject(MINDSDB_MODELS) private readonly models: Map<string, IModel>
   ) {
-    this.project = this.configService.get<string>("NODE_ENV") ?? "mindsdb";
+    this.project = this.configService.get<string>("NODE_ENV") ?? "local";
+    this.projectAsIntegrationPrefix = this.configService.get<boolean>("MINDSDB_PROJECT_AS_INTEGRATION_PREFIX") ?? false;
   }
 
   async onModuleInit() {
@@ -41,6 +43,18 @@ export class MindsdbService implements OnModuleInit {
     } catch (error) {
       this.logger.error(error);
     }
+  }
+
+  public get ProjectAsIntegrationPrefix() {
+    return this.projectAsIntegrationPrefix;
+  }
+
+  public set ProjectAsIntegrationPrefix(projectAsIntegrationPrefix: boolean) {
+    this.projectAsIntegrationPrefix = projectAsIntegrationPrefix;
+  }
+
+  private get IntegrationPrefix() {
+    return this.ProjectAsIntegrationPrefix ? `${this.project}_` : "";
   }
 
   public get Client() {
@@ -105,7 +119,7 @@ export class MindsdbService implements OnModuleInit {
       model.name,
       model.targetColumn,
       this.project,
-      getTrainingOptions(model)
+      getTrainingOptions(model, this.IntegrationPrefix)
     );
   }
 
@@ -160,7 +174,7 @@ export class MindsdbService implements OnModuleInit {
 
     return model.adjust(
       modelDef.integration ?? this.project,
-      getFinetuneOptions(modelDef, finetune)
+      getFinetuneOptions(modelDef, this.IntegrationPrefix, finetune)
     );
   }
 
@@ -174,7 +188,7 @@ export class MindsdbService implements OnModuleInit {
       id,
       modelDef.targetColumn,
       this.project,
-      getTrainingOptions(modelDef, retrain)
+      getTrainingOptions(modelDef, this.IntegrationPrefix, retrain)
     );
   }
 

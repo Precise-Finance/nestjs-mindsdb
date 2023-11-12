@@ -91,6 +91,7 @@ export class IModel {
  */
 export function getTrainingOptions(
   model: IModel,
+  integrationPrefix?: string,
   options?: TrainingOptions
 ): AdjustOptions {
   const using = {
@@ -100,7 +101,7 @@ export function getTrainingOptions(
   return {
     select: options?.select ?? model.trainingOptions.select,
     using: options?.using ? { ...options, tag: model.tag } : using,
-    integration: model.integration ?? model.finetuneOptions.integration,
+    integration: `${integrationPrefix ?? ""}${model.trainingOptions.integration ?? model.integration}`,
   };
 }
 
@@ -112,6 +113,7 @@ export function getTrainingOptions(
  */
 export function getFinetuneOptions(
   model: IModel,
+  integrationPrefix?: string,
   finetune?: FinetuneMindsdbDto
 ): AdjustOptions {
   return {
@@ -122,7 +124,7 @@ export function getFinetuneOptions(
         ) as string
       : finetune?.select ?? model.finetuneOptions.select,
     using: finetune?.using ?? model.finetuneOptions.using,
-    integration: model.integration ?? model.finetuneOptions.integration,
+    integration: `${integrationPrefix ?? ""}${model.finetuneOptions.integration ?? model.integration}`,
   };
 }
 
