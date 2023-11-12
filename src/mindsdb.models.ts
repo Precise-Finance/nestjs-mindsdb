@@ -94,14 +94,22 @@ export function getTrainingOptions(
   integrationPrefix?: string,
   options?: TrainingOptions
 ): AdjustOptions {
+  
   const using = {
     ...(model.trainingOptions.using || {}),
     tag: model.tag,
+  };
+  const to = {
+    ...model.trainingOptions,
+    ...(options || {}),
   }
   return {
+    ...to,
     select: options?.select ?? model.trainingOptions.select,
     using: options?.using ? { ...options, tag: model.tag } : using,
-    integration: `${integrationPrefix ?? ""}${model.trainingOptions.integration ?? model.integration}`,
+    integration: `${integrationPrefix ?? ""}${
+      model.trainingOptions.integration ?? model.integration
+    }`,
   };
 }
 
@@ -118,13 +126,15 @@ export function getFinetuneOptions(
 ): AdjustOptions {
   return {
     select: finetune.params
-      ? queryReplacer(
+      ? (queryReplacer(
           finetune?.select ?? model.finetuneOptions.select,
           finetune?.params
-        ) as string
+        ) as string)
       : finetune?.select ?? model.finetuneOptions.select,
     using: finetune?.using ?? model.finetuneOptions.using,
-    integration: `${integrationPrefix ?? ""}${model.finetuneOptions.integration ?? model.integration}`,
+    integration: `${integrationPrefix ?? ""}${
+      model.finetuneOptions.integration ?? model.integration
+    }`,
   };
 }
 
@@ -140,7 +150,9 @@ export function getPredictOptions(
   query?: PredictMindsdbDto
 ): QueryOptions | BatchQueryOptions {
   return {
-    join: query?.join?.replace('$INTEGRATION$', integration) ?? model.predictOptions.join.replace('$INTEGRATION$', integration),
+    join:
+      query?.join?.replace("$INTEGRATION$", integration) ??
+      model.predictOptions.join.replace("$INTEGRATION$", integration),
     where: query?.params
       ? queryReplacer(query.where ?? model.predictOptions.where, query?.params)
       : query.where ?? model.predictOptions.where,
@@ -163,11 +175,13 @@ const queryReplacer = (
       (acc, key) =>
         acc.replace(
           key,
-          mysql.escape(
-            queryParams[key] instanceof Date
-              ? (queryParams[key] as Date).toISOString()
-              : queryParams[key]
-          )
+          queryParams[key] === "LATEST" // LATEST is a special value in MindsDB
+            ? queryParams[key] as string
+            : mysql.escape(
+                queryParams[key] instanceof Date
+                  ? (queryParams[key] as Date).toISOString()
+                  : queryParams[key]
+              )
         ),
       query
     );

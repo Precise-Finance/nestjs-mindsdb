@@ -44,6 +44,7 @@ export abstract class AbstractMindsdbController {
     return this.mindsdbService.create(createMindsdbDto);
   }
 
+  @ApiBody({ type: PredictMindsdbDto })
   @Post(":id/predict")
   predict(
     @Param(

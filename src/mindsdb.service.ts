@@ -28,7 +28,10 @@ export class MindsdbService implements OnModuleInit {
     @Inject(MINDSDB_MODELS) private readonly models: Map<string, IModel>
   ) {
     this.project = this.configService.get<string>("NODE_ENV") ?? "local";
-    this.projectAsIntegrationPrefix = this.configService.get<boolean>("MINDSDB_PROJECT_AS_INTEGRATION_PREFIX") ?? false;
+    this.projectAsIntegrationPrefix =
+      this.configService.get<boolean>(
+        "MINDSDB_PROJECT_AS_INTEGRATION_PREFIX"
+      ) ?? false;
   }
 
   async onModuleInit() {
@@ -85,7 +88,11 @@ export class MindsdbService implements OnModuleInit {
       createMindsdbDto.name,
       this.project
     );
-    if (existingModel && existingModel.tag === model.tag) {
+    if (
+      existingModel &&
+      existingModel.status !== "error" &&
+      existingModel.tag === model.tag
+    ) {
       throw new Error(`Model ${createMindsdbDto.name} already exists`);
     } else if (
       existingModel &&
@@ -94,9 +101,12 @@ export class MindsdbService implements OnModuleInit {
       throw new Error(
         `Model ${createMindsdbDto.name} already exists and is still training`
       );
-    } else if (existingModel && existingModel.tag !== model.tag) {
+    } else if (
+      existingModel &&
+      (existingModel.tag !== model.tag || existingModel.status === "error")
+    ) {
       this.logger.log(
-        `Model ${createMindsdbDto.name} already exists with different tag, retraining...`
+        `Model ${createMindsdbDto.name} already exists with different tag or errored, retraining...`
       );
       return this.retrain(createMindsdbDto.name);
     }
@@ -152,11 +162,19 @@ export class MindsdbService implements OnModuleInit {
 
     if (modelDef.predictOptions.join || cleanedQuery.join) {
       return model.batchQuery(
-        getPredictOptions(modelDef, `${this.IntegrationPrefix}${modelDef.integration}`,cleanedQuery) as BatchQueryOptions
+        getPredictOptions(
+          modelDef,
+          `${this.IntegrationPrefix}${modelDef.integration}`,
+          cleanedQuery
+        ) as BatchQueryOptions
       );
     } else {
       return model.query(
-        getPredictOptions(modelDef, `${this.IntegrationPrefix}${modelDef.integration}`, cleanedQuery) as QueryOptions
+        getPredictOptions(
+          modelDef,
+          `${this.IntegrationPrefix}${modelDef.integration}`,
+          cleanedQuery
+        ) as QueryOptions
       );
     }
   }
