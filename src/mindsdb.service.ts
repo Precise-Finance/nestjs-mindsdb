@@ -190,7 +190,7 @@ export class MindsdbService implements OnModuleInit {
       throw new Error(`Model ${id} does not exist`);
     }
 
-    return model.adjust(
+    return model.finetune(
       modelDef.integration ?? this.project,
       getFinetuneOptions(modelDef, this.IntegrationPrefix, finetune)
     );

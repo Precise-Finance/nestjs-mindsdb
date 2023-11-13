@@ -3,7 +3,7 @@ import {
   QueryOptions,
 } from "mindsdb-js-sdk/dist/models/queryOptions";
 import {
-  AdjustOptions,
+  FinetuneOptions,
   TrainingOptions,
 } from "mindsdb-js-sdk/dist/models/trainingOptions";
 import { PredictMindsdbDto } from "./dto/predict-mindsdb.dto";
@@ -80,7 +80,7 @@ export class IModel {
   /**
    * The fine-tuning options of the model
    */
-  finetuneOptions: AdjustOptions;
+  finetuneOptions: FinetuneOptions;
 }
 
 /**
@@ -93,7 +93,7 @@ export function getTrainingOptions(
   model: IModel,
   integrationPrefix?: string,
   options?: TrainingOptions
-): AdjustOptions {
+): FinetuneOptions {
   
   const using = {
     ...(model.trainingOptions.using || {}),
@@ -123,7 +123,7 @@ export function getFinetuneOptions(
   model: IModel,
   integrationPrefix?: string,
   finetune?: FinetuneMindsdbDto
-): AdjustOptions {
+): FinetuneOptions {
   return {
     select: finetune.params
       ? (queryReplacer(
