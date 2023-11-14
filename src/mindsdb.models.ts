@@ -94,7 +94,6 @@ export function getTrainingOptions(
   integrationPrefix?: string,
   options?: TrainingOptions
 ): FinetuneOptions {
-  
   const using = {
     ...(model.trainingOptions.using || {}),
     tag: model.tag,
@@ -102,7 +101,7 @@ export function getTrainingOptions(
   const to = {
     ...model.trainingOptions,
     ...(options || {}),
-  }
+  };
   return {
     ...to,
     select: options?.select ?? model.trainingOptions.select,
@@ -124,14 +123,20 @@ export function getFinetuneOptions(
   integrationPrefix?: string,
   finetune?: FinetuneMindsdbDto
 ): FinetuneOptions {
+  let using: { [key: string]: any } = {
+    tag: model.tag,
+    ...(model.finetuneOptions.using || {}),
+    ...(finetune?.using || {}),
+  };
+  using = Object.keys(using).length === 0 ? undefined : using;
   return {
-    select: finetune.params
+    select: finetune?.params
       ? (queryReplacer(
           finetune?.select ?? model.finetuneOptions.select,
           finetune?.params
         ) as string)
       : finetune?.select ?? model.finetuneOptions.select,
-    using: finetune?.using ?? model.finetuneOptions.using,
+    using: using,
     integration: `${integrationPrefix ?? ""}${
       model.finetuneOptions.integration ?? model.integration
     }`,
@@ -176,7 +181,7 @@ const queryReplacer = (
         acc.replace(
           key,
           queryParams[key] === "LATEST" // LATEST is a special value in MindsDB
-            ? queryParams[key] as string
+            ? (queryParams[key] as string)
             : mysql.escape(
                 queryParams[key] instanceof Date
                   ? (queryParams[key] as Date).toISOString()

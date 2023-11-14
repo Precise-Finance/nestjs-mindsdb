@@ -26,7 +26,7 @@ describe("MindsdbModels", () => {
   });
 
   it("should be defined", () => {
-    const result = getPredictOptions(Models.get("balance_auto") as IModel, {
+    const result = getPredictOptions(Models.get("balance_auto") as IModel, 'ss', {
       params: {
         $CUSTOMER_ID$: 1123213,
         $DATE$: new Date('2022-01-01'),
@@ -36,12 +36,13 @@ describe("MindsdbModels", () => {
   });
 
   it("finetune params", () => {
-    const result = getFinetuneOptions(Models.get("balance_auto") as IModel, {
+    const result = getFinetuneOptions(Models.get("balance_auto") as IModel, 'asdsa', {
       params: {
         $CUSTOMER_ID$: 1123213,
         $DATE$: new Date('2022-01-01'),
       },
     });
+    expect(result).toEqual("select * from enriched_balance where customerId = 1123213 and date > '2022-01-01T00:00:00.000Z'");
     expect(result.select).toEqual("select * from enriched_balance where customerId = 1123213 and date > '2022-01-01T00:00:00.000Z'");
   });
 });

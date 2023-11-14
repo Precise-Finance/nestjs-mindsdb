@@ -190,9 +190,11 @@ export class MindsdbService implements OnModuleInit {
       throw new Error(`Model ${id} does not exist`);
     }
 
+    const finetuneOptions = getFinetuneOptions(modelDef, this.IntegrationPrefix, finetune);
+    this.logger.log({ message: `Finetuning model ${id} with options ${JSON.stringify(finetuneOptions)}`, finetuneOptions });
     return model.finetune(
       modelDef.integration ?? this.project,
-      getFinetuneOptions(modelDef, this.IntegrationPrefix, finetune)
+      finetuneOptions
     );
   }
 
