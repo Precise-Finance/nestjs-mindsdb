@@ -1,7 +1,7 @@
 import { Inject, Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { CreateMindsdbDto } from "./dto/create-mindsdb.dto";
 import { RetrainMindsDbDto } from "./dto/retrain-mindsdb.dto";
-import MindsDB, { TrainingOptions } from "mindsdb-js-sdk";
+import MindsDB, { LogLevel, TrainingOptions } from "mindsdb-js-sdk";
 import {
   BatchQueryOptions,
   QueryOptions,
@@ -42,6 +42,10 @@ export class MindsdbService implements OnModuleInit {
         user: this.configService.get("MINDSDB_USER"),
         password: this.configService.get("MINDSDB_PASSWORD"),
         managed: this.configService.get("MINDSDB_MANAGED") ?? undefined,
+        logging: {
+          logLevel: this.configService.get("MINDSDB_LOG_LEVEL") ?? LogLevel.LOG,
+          logger: new Logger("MindsDB"),
+        },
       });
     } catch (error) {
       this.logger.error(error);
@@ -190,8 +194,17 @@ export class MindsdbService implements OnModuleInit {
       throw new Error(`Model ${id} does not exist`);
     }
 
-    const finetuneOptions = getFinetuneOptions(modelDef, this.IntegrationPrefix, finetune);
-    this.logger.log({ message: `Finetuning model ${id} with options ${JSON.stringify(finetuneOptions)}`, finetuneOptions });
+    const finetuneOptions = getFinetuneOptions(
+      modelDef,
+      this.IntegrationPrefix,
+      finetune
+    );
+    this.logger.log({
+      message: `Finetuning model ${id} with options ${JSON.stringify(
+        finetuneOptions
+      )}`,
+      finetuneOptions,
+    });
     return model.finetune(
       modelDef.integration ?? this.project,
       finetuneOptions
