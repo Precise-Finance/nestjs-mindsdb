@@ -30,6 +30,11 @@ export class IModel {
    * The name of the model
    */
   name: string;
+
+  /**
+   * The retrain schedule of the model
+   */
+  retrainSchedule?: 'monthly' | 'weekly' | 'daily' | 'hourly';
   /**
    * The target column of the model
    */

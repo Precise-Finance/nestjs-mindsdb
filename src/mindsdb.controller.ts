@@ -30,7 +30,6 @@ import { Readable } from "stream";
 
 @ApiTags("mindsdb")
 export abstract class AbstractMindsdbController {
-  private readonly logger = new Logger(AbstractMindsdbController.name);
   constructor(protected readonly mindsdbService: MindsdbService) {}
   /**
    *
@@ -67,7 +66,6 @@ export abstract class AbstractMindsdbController {
   @Get('callbacks')
   async getCallbacks() {
     const result = await this.mindsdbService.Client.Callbacks.getCallbacks();
-    this.logger.log({ message: `getCallbacks returned with ${result?.length}`, result });
     return result;
   }
 
@@ -85,7 +83,7 @@ export abstract class AbstractMindsdbController {
   }
 
   @Patch(":id")
-  adjust(@Param("id") id: string, @Body() finetuneDto: FinetuneMindsdbDto) {
+  finetune(@Param("id") id: string, @Body() finetuneDto: FinetuneMindsdbDto) {
     return this.mindsdbService.finetune(id, finetuneDto);
   }
 
