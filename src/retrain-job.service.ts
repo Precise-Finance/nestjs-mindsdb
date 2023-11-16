@@ -77,9 +77,6 @@ export class RetrainJobService {
     if (!lastRunTime) return false;
 
     const lastRun = dayjs(lastRunTime).tz(timezone);
-    this.logger.log({
-      message: `Original Date: ${lastRunTime}, daysjs: ${lastRun}`,
-    });
     const cronExpression = schedule.get(scheduleType);
 
     let nextRun;
@@ -90,18 +87,13 @@ export class RetrainJobService {
     }
 
     const nextRunTime = dayjs(nextRun).tz(timezone, true);
-    this.logger.log({
-      message: `Next Run: ${nextRun}, daysjs: ${nextRunTime}`,
-    });
     let adjustedDate;
     let buffer = 1 / 3; // 20 minutes
 
     adjustedDate = nextRunTime.subtract(1, scheduleType.slice(0, -2) as any);
 
     const bufferTime = adjustedDate.subtract(buffer, "hour");
-    this.logger.log({
-      message: `Adjusted Date: ${adjustedDate}, Buffer Time: ${bufferTime}`,
-    });
+
     return !lastRun.isAfter(bufferTime);
   }
 
