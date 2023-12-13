@@ -99,9 +99,10 @@ export function getTrainingOptions(
   integrationPrefix?: string,
   options?: TrainingOptions
 ): FinetuneOptions {
-  const using = {
-    ...(model.trainingOptions.using || {}),
+  let using: { [key: string]: any } = {
     tag: model.tag,
+    ...(model.finetuneOptions.using || {}),
+    ...(options?.using || {}),
   };
   const to = {
     ...model.trainingOptions,
@@ -110,7 +111,7 @@ export function getTrainingOptions(
   return {
     ...to,
     select: options?.select ?? model.trainingOptions.select,
-    using: options?.using ? { ...options, tag: model.tag } : using,
+    using: using,
     integration: `${integrationPrefix ?? ""}${
       model.trainingOptions.integration ?? model.integration
     }`,

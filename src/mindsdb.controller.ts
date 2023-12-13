@@ -27,6 +27,7 @@ import { RetrainMindsDbDto } from "./dto";
 import { ApiConsumes, ApiBody, ApiTags } from "@nestjs/swagger";
 import { Express } from "express";
 import { Readable } from "stream";
+import CreateCallbackDto from "./dto/create-callback.dto";
 
 @ApiTags("mindsdb")
 export abstract class AbstractMindsdbController {
@@ -103,12 +104,55 @@ export abstract class AbstractMindsdbController {
           type: 'string',
           example: 'http://example.com/callback',
         },
+        options: {
+          type: 'object',
+          properties: {
+            filter: {
+              type: 'object',
+              properties: {
+                model_name: {
+                  type: 'string',
+                  example: 'model_name',
+                },
+                project_name: {
+                  type: 'string',
+                  example: 'project_name',
+                },
+                new_status: {
+                  type: 'array',
+                  items: {
+                    type: 'string',
+                    example: 'new_status',
+                  },
+                },
+              },
+            },
+            attempt: {
+              type: 'object',
+              properties: {
+                count: {
+                  type: 'number',
+                  example: 1,
+                },
+                http_timeout: {
+                  type: 'number',
+                  example: 1,
+                },
+                interval: {
+                  type: 'number',
+                  example: 1,
+                },
+              },
+            },
+          },
+        },
       },
+      required: ['url'],
     },
   })
   
-  async createCallback(@Body('url') url: string) {
-    return this.mindsdbService.Client.Callbacks.createCallback(url);
+  async createCallback(@Body() body: CreateCallbackDto) {
+    return this.mindsdbService.Client.Callbacks.createCallback(body.url, body.options);
   }
 
   @Delete('callbacks/:id')
@@ -131,6 +175,10 @@ export abstract class AbstractMindsdbController {
         name: {
           type: 'string',
         },
+        type: {
+          type: 'string',
+          enum: ['inhouse', 'venv'],
+        },
         code: {
           type: "string",
           format: "binary",
@@ -145,6 +193,7 @@ export abstract class AbstractMindsdbController {
   })
   createMLEngine(
     @Body('name') name: string,
+    @Body('type') type: 'inhouse'|'venv',
     @UploadedFiles()
     files: {
       code?: Express.Multer.File[];
@@ -160,7 +209,8 @@ export abstract class AbstractMindsdbController {
     return this.mindsdbService.createMLEngine(
       name,
       codeStream,
-      requirementsStream
+      requirementsStream,
+      type
     );
   }
 
@@ -176,6 +226,10 @@ export abstract class AbstractMindsdbController {
     schema: {
       type: "object",
       properties: {
+        type: {
+          type: 'string',
+          enum: ['inhouse', 'venv'],
+        },
         code: {
           type: "string",
           format: "binary",
@@ -191,6 +245,7 @@ export abstract class AbstractMindsdbController {
   })
   updateMLEngine(
     @Param("id") id: string,
+    @Body('type') type: 'inhouse'|'venv',
     @UploadedFiles()
     files: {
       code?: Express.Multer.File[];
@@ -206,7 +261,8 @@ export abstract class AbstractMindsdbController {
     return this.mindsdbService.updateMLEngine(
       id,
       codeStream,
-      requirementsStream
+      requirementsStream,
+      type,
     );
   }
 }

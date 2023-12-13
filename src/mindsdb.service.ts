@@ -229,16 +229,17 @@ export class MindsdbService implements OnModuleInit {
     return this.Client.Models.deleteModel(name, this.project);
   }
 
-  async createMLEngine(name: string, code: Readable, requirements: Readable) {
-    return this.Client.MLEngines.createMLEngine(name, code, requirements);
+  async createMLEngine(name: string, code: Readable, requirements: Readable, type?: 'venv' | 'inhouse'
+  ) {
+    return this.Client.MLEngines.createMLEngine(name, code, requirements, type);
   }
 
-  async updateMLEngine(name: string, code: Readable, requirements: Readable) {
+  async updateMLEngine(name: string, code: Readable, requirements: Readable, type?: 'venv' | 'inhouse') {
     const engine = await this.Client.MLEngines.getMLEngine(name);
     if (!engine) {
       throw new Error(`MLEngine ${name} does not exist`);
     }
 
-    return this.Client.MLEngines.updateMLEngine(name, code, requirements);
+    return this.Client.MLEngines.updateMLEngine(name, code, requirements, type);
   }
 }
