@@ -1,24 +1,29 @@
 import { DynamicModule, Module, Scope } from "@nestjs/common";
 import { MindsdbService } from "./mindsdb.service";
-import { IModel } from "./mindsdb.models";
-import { ConfigService } from "@nestjs/config";
-import { MINDSDB_MODELS } from "./mindsdb.constants";
+import { MINDSDB_MODULE_OPTIONS } from "./mindsdb.constants";
 import { RetrainJobService } from "./retrain-job.service";
 import { ScheduleModule } from "@nestjs/schedule";
-// import { MindsdbController } from './mindsdb.controller';
+import { MindsdbModuleOptions } from "./interfaces/mindsdb-options.interface";
 
 @Module({})
 export class MindsdbModule {
-  public static forRoot(models: Map<string, IModel>): DynamicModule {
+  public static forRoot(options?: MindsdbModuleOptions): DynamicModule {
+    const mindsdbModuleOptions = {
+      provide: MINDSDB_MODULE_OPTIONS,
+      useValue: options,
+    };
+
+    const providers = [
+      MindsdbService,
+      RetrainJobService,
+      mindsdbModuleOptions,
+    ];
     return {
       global: true,
       module: MindsdbModule,
-      imports: [ScheduleModule.forRoot(),],
-      providers: [ConfigService, {
-        provide: MINDSDB_MODELS,
-        useValue: models,
-      }, MindsdbService, RetrainJobService],
-      exports: [MindsdbService, MINDSDB_MODELS, RetrainJobService],
+      imports: [ScheduleModule.forRoot()],
+      providers,
+      exports: [MindsdbService, RetrainJobService],
     };
   }
 }

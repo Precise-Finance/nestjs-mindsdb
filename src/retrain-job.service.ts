@@ -9,6 +9,8 @@ import * as timezone from "dayjs/plugin/timezone";
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+const DEFAULT_TIMEZONE = "UTC";
+
 @Injectable()
 export class RetrainJobService {
   private readonly logger = new Logger(RetrainJobService.name);
@@ -26,35 +28,42 @@ export class RetrainJobService {
   public async scheduleModelUpdates(
     modelDetails: (IModel & { lastRunDate: Date })[],
     triggeredFunction: (modelName: string) => Promise<void>,
-    timezone?: string,
+    timezone: string = DEFAULT_TIMEZONE,
     scheduleOverride?: Map<"monthly" | "weekly" | "daily" | "hourly", string>
   ) {
     this.clearRetrainJobs();
     modelDetails.forEach(async ({ name, retrainSchedule, lastRunDate }) => {
-      if (retrainSchedule) {
-        const schedule = scheduleOverride ?? this.schedule;
-        if (
-          this.shouldRunNow(
-            retrainSchedule,
-            schedule,
-            lastRunDate,
-            timezone ?? "UTC"
-          )
-        ) {
-          try {
-            this.logger.log({ message: `Retraining ${name}` });
-            await triggeredFunction(name);
-          } catch (error) {
-            this.logger.error(error);
-          }
-        }
-        this.scheduleRetrainTask(
-          name,
-          schedule.get(retrainSchedule),
-          triggeredFunction,
-          timezone
-        );
+      if (!retrainSchedule) {
+        return;
       }
+
+      const schedule = scheduleOverride ?? this.schedule;
+      if (
+        this.shouldRunNow(
+          retrainSchedule,
+          schedule,
+          lastRunDate,
+          timezone
+        )
+      ) {
+        try {
+          this.logger.log({ message: `Retraining ${name}` });
+          await triggeredFunction(name);
+        } catch (error) {
+          this.logger.error(error);
+        }
+      }
+      const cronExpression = schedule.get(retrainSchedule);
+      if (!cronExpression) {
+        return;
+      }
+
+      this.scheduleRetrainTask(
+        name,
+        cronExpression,
+        triggeredFunction,
+        timezone
+      );
     });
   }
 
@@ -79,6 +88,10 @@ export class RetrainJobService {
     const lastRun = dayjs(lastRunTime).tz(timezone);
     const cronExpression = schedule.get(scheduleType);
 
+    if (!cronExpression) {
+      throw new Error("Invalid schedule type");
+    }
+
     let nextRun;
     try {
       nextRun = sendAt(cronExpression);
@@ -87,10 +100,9 @@ export class RetrainJobService {
     }
 
     const nextRunTime = dayjs(nextRun).tz(timezone, true);
-    let adjustedDate;
     let buffer = 1 / 3; // 20 minutes
 
-    adjustedDate = nextRunTime.subtract(1, scheduleType.slice(0, -2) as any);
+    const adjustedDate = nextRunTime.subtract(1, scheduleType.slice(0, -2) as any);
 
     const bufferTime = adjustedDate.subtract(buffer, "hour");
 
@@ -101,7 +113,7 @@ export class RetrainJobService {
     modelName: string,
     cronExpression: string,
     triggeredFunction: (modelName: string) => Promise<void>,
-    timezone?: string
+    timezone: string = DEFAULT_TIMEZONE
   ) {
     const job = new CronJob(
       cronExpression,
@@ -110,7 +122,7 @@ export class RetrainJobService {
       },
       null,
       true,
-      timezone ?? "UTC"
+      timezone
     );
     this.schedulerRegistry.addCronJob(`retrain-${modelName}`, job);
     job.start();

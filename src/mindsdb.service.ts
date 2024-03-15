@@ -1,12 +1,11 @@
 import { Inject, Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { CreateMindsdbDto } from "./dto/create-mindsdb.dto";
 import { RetrainMindsDbDto } from "./dto/retrain-mindsdb.dto";
-import MindsDB, { LogLevel, TrainingOptions } from "mindsdb-js-sdk";
+import MindsDB from "mindsdb-js-sdk";
 import {
   BatchQueryOptions,
   QueryOptions,
 } from "mindsdb-js-sdk/dist/models/queryOptions";
-import { ConfigService } from "@nestjs/config";
 import {
   IModel,
   getFinetuneOptions,
@@ -15,37 +14,31 @@ import {
 } from "./mindsdb.models";
 import { PredictMindsdbDto } from "./dto/predict-mindsdb.dto";
 import { FinetuneMindsdbDto } from "./dto/finetune-mindsdb.dto";
-import { MINDSDB_MODELS } from "./mindsdb.constants";
-import { Readable } from "stream";
+import { MINDSDB_MODULE_OPTIONS } from "./mindsdb.constants";
+import { MindsdbModuleOptions } from "./interfaces/mindsdb-options.interface";
 
 @Injectable()
 export class MindsdbService implements OnModuleInit {
   private project: string;
-  private projectAsIntegrationPrefix = false;
+  private readonly models: Map<string, IModel>;
+  private projectAsIntegrationPrefix: boolean;
   private readonly logger = new Logger(MindsdbService.name);
   constructor(
-    private readonly configService: ConfigService,
-    @Inject(MINDSDB_MODELS) private readonly models: Map<string, IModel>
+    @Inject(MINDSDB_MODULE_OPTIONS) private readonly options: MindsdbModuleOptions,
   ) {
-    this.project = this.configService.get<string>("NODE_ENV") ?? "local";
-    this.projectAsIntegrationPrefix =
-      this.configService.get<boolean>(
-        "MINDSDB_PROJECT_AS_INTEGRATION_PREFIX"
-      ) ?? false;
+    this.project = options.project;
+    this.projectAsIntegrationPrefix = options.projectAsIntegrationPrefix ?? false;
+    this.models = options.models;
   }
 
   async onModuleInit() {
-    this.configService.get<string>("MINDSDB_API_KEY");
     try {
+      const { host, user, password, managed } = this.options.connection;
       await this.Client.connect({
-        host: this.configService.get("MINDSDB_HOST") ?? undefined,
-        user: this.configService.get("MINDSDB_USER"),
-        password: this.configService.get("MINDSDB_PASSWORD"),
-        managed: this.configService.get("MINDSDB_MANAGED") ?? undefined,
-        logging: {
-          logLevel: this.configService.get("MINDSDB_LOG_LEVEL") ?? LogLevel.LOG,
-          logger: new Logger("MindsDB"),
-        },
+        host,
+        user,
+        password,
+        managed,
       });
     } catch (error) {
       this.logger.error(error);
@@ -54,10 +47,6 @@ export class MindsdbService implements OnModuleInit {
 
   public get ProjectAsIntegrationPrefix() {
     return this.projectAsIntegrationPrefix;
-  }
-
-  public set ProjectAsIntegrationPrefix(projectAsIntegrationPrefix: boolean) {
-    this.projectAsIntegrationPrefix = projectAsIntegrationPrefix;
   }
 
   private get IntegrationPrefix() {
@@ -72,15 +61,11 @@ export class MindsdbService implements OnModuleInit {
     return this.project;
   }
 
-  public set Project(project: string) {
-    this.project = project;
-  }
-
   public get Models() {
     return this.models;
   }
 
-  async create(createMindsdbDto: CreateMindsdbDto) {
+  async create(createMindsdbDto: CreateMindsdbDto, project: string = this.project) {
     const model = this.models.get(createMindsdbDto.name);
     // If there is no model in the cache, you should handle that case as well
     if (!model) {
@@ -90,7 +75,7 @@ export class MindsdbService implements OnModuleInit {
     }
     const existingModel = await this.Client.Models.getModel(
       createMindsdbDto.name,
-      this.project
+      project
     );
     if (
       existingModel &&
@@ -115,13 +100,13 @@ export class MindsdbService implements OnModuleInit {
       return this.retrain(createMindsdbDto.name);
     }
     if (model.view) {
-      const allViews = await this.Client.Views.getAllViews(this.project);
-      const viewExists = allViews.some((v) => v.name === model.view.name);
+      const allViews = await this.Client.Views.getAllViews(project);
+      const viewExists = allViews.some((v) => v.name === model.view?.name);
       if (!viewExists) {
         this.logger.log(`View ${model.view.name} does not exist, creating...`);
         await this.Client.Views.createView(
           model.view.name ?? model.name,
-          this.project,
+          project,
           model.view.select
         );
       }
@@ -132,20 +117,20 @@ export class MindsdbService implements OnModuleInit {
     return await this.Client.Models.trainModel(
       model.name,
       model.targetColumn,
-      this.project,
+      project,
       getTrainingOptions(model, this.IntegrationPrefix)
     );
   }
 
-  async findAll() {
-    return this.Client.Models.getAllModels(this.project);
+  async findAll(project: string = this.project) {
+    return this.Client.Models.getAllModels(project);
   }
 
-  async findOne(id: string, version?: number) {
-    return this.Client.Models.getModel(id, this.project, version);
+  async findOne(id: string, version?: number, project: string = this.project) {
+    return this.Client.Models.getModel(id, project, version);
   }
 
-  async predict(id: string, predictMindsdbDto: PredictMindsdbDto) {
+  async predict(id: string, predictMindsdbDto: PredictMindsdbDto, project: string = this.project) {
     const modelDef = this.models.get(id);
     if (!modelDef) {
       throw new Error(`Model definition for ${id} not found`);
@@ -153,7 +138,7 @@ export class MindsdbService implements OnModuleInit {
 
     const model = await this.Client.Models.getModel(
       id,
-      this.project,
+      project,
       predictMindsdbDto.version
     );
     if (!model) {
@@ -205,8 +190,7 @@ export class MindsdbService implements OnModuleInit {
       )}`,
       finetuneOptions,
     });
-    return model.finetune(
-      modelDef.integration ?? this.project,
+    return model.retrain(
       finetuneOptions
     );
   }
@@ -225,21 +209,23 @@ export class MindsdbService implements OnModuleInit {
     );
   }
 
-  async remove(name: string) {
-    return this.Client.Models.deleteModel(name, this.project);
+  async remove(name: string, project: string = this.project) {
+    return this.Client.Models.deleteModel(name, project);
   }
 
-  async createMLEngine(name: string, code: Readable, requirements: Readable, type?: 'venv' | 'inhouse'
-  ) {
-    return this.Client.MLEngines.createMLEngine(name, code, requirements, type);
-  }
-
-  async updateMLEngine(name: string, code: Readable, requirements: Readable, type?: 'venv' | 'inhouse') {
-    const engine = await this.Client.MLEngines.getMLEngine(name);
-    if (!engine) {
-      throw new Error(`MLEngine ${name} does not exist`);
-    }
-
-    return this.Client.MLEngines.updateMLEngine(name, code, requirements, type);
-  }
+  // async createMLEngine(name: string, code: Readable, requirements: Readable, type?: 'venv' | 'inhouse'
+  // ) {
+  //   const clientMLEngines = (this.Client as any).MLEngines as any;
+  //   return clientMLEngines?.createMLEngine(name, code, requirements, type);
+  // }
+  //
+  // async updateMLEngine(name: string, code: Readable, requirements: Readable, type?: 'venv' | 'inhouse') {
+  //   const clientMLEngines = (this.Client as any).MLEngines as any;
+  //   const engine = await clientMLEngines?.getMLEngine(name);
+  //   if (!engine) {
+  //     throw new Error(`MLEngine ${name} does not exist`);
+  //   }
+  //
+  //   return clientMLEngines?.updateMLEngine(name, code, requirements, type);
+  // }
 }

@@ -3,8 +3,8 @@ import {
   QueryOptions,
 } from "mindsdb-js-sdk/dist/models/queryOptions";
 import {
-  FinetuneOptions,
   TrainingOptions,
+  AdjustOptions
 } from "mindsdb-js-sdk/dist/models/trainingOptions";
 import { PredictMindsdbDto } from "./dto/predict-mindsdb.dto";
 import { FinetuneMindsdbDto } from "./dto/finetune-mindsdb.dto";
@@ -76,7 +76,7 @@ export class IModel {
     /**
      * The join statement of the prediction
      */
-    join: string;
+    join?: string;
     /**
      * The limit of the prediction
      */
@@ -85,7 +85,7 @@ export class IModel {
   /**
    * The fine-tuning options of the model
    */
-  finetuneOptions: FinetuneOptions;
+  finetuneOptions: AdjustOptions;
 }
 
 /**
@@ -96,9 +96,9 @@ export class IModel {
  */
 export function getTrainingOptions(
   model: IModel,
-  integrationPrefix?: string,
+  integrationPrefix: string = '',
   options?: TrainingOptions
-): FinetuneOptions {
+): AdjustOptions {
   let using: { [key: string]: any } = {
     tag: model.tag,
     ...(model.finetuneOptions.using || {}),
@@ -108,13 +108,19 @@ export function getTrainingOptions(
     ...model.trainingOptions,
     ...(options || {}),
   };
+  const select = options?.select ?? model.trainingOptions.select;
+
+  if (!select) {
+    throw new Error("No select statement provided");
+  }
+
+  const integration = model.trainingOptions.integration ?? model.integration;
+
   return {
     ...to,
-    select: options?.select ?? model.trainingOptions.select,
-    using: using,
-    integration: `${integrationPrefix ?? ""}${
-      model.trainingOptions.integration ?? model.integration
-    }`,
+    select,
+    using,
+    integration: `${integrationPrefix}${integration}`,
   };
 }
 
@@ -126,26 +132,26 @@ export function getTrainingOptions(
  */
 export function getFinetuneOptions(
   model: IModel,
-  integrationPrefix?: string,
+  integrationPrefix: string = '',
   finetune?: FinetuneMindsdbDto
-): FinetuneOptions {
-  let using: { [key: string]: any } = {
+): AdjustOptions {
+  let using: { [key: string]: any } | undefined = {
     tag: model.tag,
     ...(model.finetuneOptions.using || {}),
     ...(finetune?.using || {}),
   };
   using = Object.keys(using).length === 0 ? undefined : using;
+  const integration = model.finetuneOptions.integration ?? model.integration;
+  const select = finetune?.select ?? model.finetuneOptions.select;
   return {
     select: finetune?.params
       ? (queryReplacer(
-          finetune?.select ?? model.finetuneOptions.select,
-          finetune?.params
-        ) as string)
-      : finetune?.select ?? model.finetuneOptions.select,
-    using: using,
-    integration: `${integrationPrefix ?? ""}${
-      model.finetuneOptions.integration ?? model.integration
-    }`,
+        select,
+        finetune?.params
+      ) as string)
+      : select,
+    using,
+    integration: `${integrationPrefix}${integration}`,
   };
 }
 
@@ -160,13 +166,14 @@ export function getPredictOptions(
   integration: string,
   query?: PredictMindsdbDto
 ): QueryOptions | BatchQueryOptions {
+  const initialJoin = query?.join ?? model.predictOptions.join;
+  const replacedJoin = initialJoin?.replace("$INTEGRATION$", integration);
+  const where = query?.where ?? model.predictOptions.where;
   return {
-    join:
-      query?.join?.replace("$INTEGRATION$", integration) ??
-      model.predictOptions.join.replace("$INTEGRATION$", integration),
+    join: replacedJoin,
     where: query?.params
-      ? queryReplacer(query.where ?? model.predictOptions.where, query?.params)
-      : query.where ?? model.predictOptions.where,
+      ? queryReplacer(where, query?.params)
+      : where,
     limit: query?.limit ?? model.predictOptions.limit,
   };
 }
@@ -189,10 +196,10 @@ const queryReplacer = (
           queryParams[key] === "LATEST" // LATEST is a special value in MindsDB
             ? (queryParams[key] as string)
             : mysql.escape(
-                queryParams[key] instanceof Date
-                  ? (queryParams[key] as Date).toISOString()
-                  : queryParams[key]
-              )
+              queryParams[key] instanceof Date
+                ? (queryParams[key] as Date).toISOString()
+                : queryParams[key]
+            )
         ),
       query
     );
