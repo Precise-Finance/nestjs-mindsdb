@@ -1,5 +1,6 @@
 import { ConnectionOptions } from "mindsdb-js-sdk";
 import { IModel } from "src/mindsdb.models";
+import { ModuleMetadata } from "@nestjs/common";
 
 export type MindsdbModuleConnectionOptions = {
   host: ConnectionOptions['host'];
@@ -25,3 +26,13 @@ export type MindsdbModuleOptions = {
   projectAsIntegrationPrefix?: boolean;
   models: Map<string, IModel>;
 };
+
+export interface MindsdbModuleOptionsFactory {
+  createMindsdbModuleOptions(): Promise<MindsdbModuleOptions> | MindsdbModuleOptions;
+}
+
+export interface MindsdbModuleAsyncOptions extends Pick<ModuleMetadata, 'imports'> {
+  useFactory: (...args: any[]) => Promise<MindsdbModuleOptions> | MindsdbModuleOptions;
+  inject?: any[];
+  extraProviders?: any[];
+}
