@@ -24,7 +24,7 @@ export const Models = new Map<string, IModel>([
       },
       finetuneOptions: {
         select: "select * from enriched_balance where customerId = $CUSTOMER_ID$ and date > $DATE$",
-        integration: undefined,
+        integration: '',
       },
     },
   ],
@@ -55,7 +55,7 @@ export const Models = new Map<string, IModel>([
       },
       finetuneOptions: {
         select: "select * from balance_gluon_enriched_balance",
-        integration: undefined,
+        integration: '',
       },
     },
   ],

@@ -42,7 +42,7 @@ describe("MindsdbModels", () => {
         $DATE$: new Date('2022-01-01'),
       },
     });
-    expect(result).toEqual("select * from enriched_balance where customerId = 1123213 and date > '2022-01-01T00:00:00.000Z'");
+    // expect(result).toEqual("select * from enriched_balance where customerId = 1123213 and date > '2022-01-01T00:00:00.000Z'");
     expect(result.select).toEqual("select * from enriched_balance where customerId = 1123213 and date > '2022-01-01T00:00:00.000Z'");
   });
 });

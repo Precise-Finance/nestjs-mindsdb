@@ -1,24 +1,73 @@
-import { DynamicModule, Module, Scope } from "@nestjs/common";
+import { DynamicModule, Module, Provider, Scope } from "@nestjs/common";
 import { MindsdbService } from "./mindsdb.service";
-import { IModel } from "./mindsdb.models";
-import { ConfigService } from "@nestjs/config";
-import { MINDSDB_MODELS } from "./mindsdb.constants";
+import { MINDSDB_MODULE_OPTIONS } from "./mindsdb.constants";
 import { RetrainJobService } from "./retrain-job.service";
 import { ScheduleModule } from "@nestjs/schedule";
-// import { MindsdbController } from './mindsdb.controller';
+import { MindsdbModuleAsyncOptions, MindsdbModuleOptions } from "./interfaces/mindsdb-options.interface";
 
 @Module({})
 export class MindsdbModule {
-  public static forRoot(models: Map<string, IModel>): DynamicModule {
+  public static forRoot(options?: MindsdbModuleOptions): DynamicModule {
+    const mindsdbModuleOptions = {
+      provide: MINDSDB_MODULE_OPTIONS,
+      useValue: options,
+    };
+
+    const providers = [
+      ...this.getBaseProviders(),
+      mindsdbModuleOptions,
+    ];
     return {
       global: true,
       module: MindsdbModule,
-      imports: [ScheduleModule.forRoot(),],
-      providers: [ConfigService, {
-        provide: MINDSDB_MODELS,
-        useValue: models,
-      }, MindsdbService, RetrainJobService],
-      exports: [MindsdbService, MINDSDB_MODELS, RetrainJobService],
+      // @ts-expect-error - Nestjs does not allow for readonly arrays, but that is a bug in their types
+      imports: this.getBaseImports(),
+      providers,
+      // @ts-expect-error - Nestjs does not allow for readonly arrays, but that is a bug in their types
+      exports: this.getBaseExports(),
+    };
+  }
+
+  private static getBaseImports() {
+    return [
+      ScheduleModule.forRoot(),
+    ] as const;
+  }
+
+  private static getBaseProviders() {
+    return [
+      MindsdbService,
+      RetrainJobService,
+    ] as const;
+  }
+
+  private static getBaseExports() {
+    return [
+      MindsdbService,
+      RetrainJobService,
+    ] as const;
+  }
+
+  public static forRootAsync(options: MindsdbModuleAsyncOptions): DynamicModule {
+    const providers = [
+      {
+        provide: MINDSDB_MODULE_OPTIONS,
+        useFactory: options.useFactory,
+        inject: options.inject || [],
+      },
+      ...this.getBaseProviders(),
+      ...(options.extraProviders || []),
+    ];
+
+    return {
+      module: MindsdbModule,
+      imports: [
+        ...(options.imports || []),
+        ...this.getBaseImports(),
+      ],
+      providers,
+      // @ts-expect-error - Nestjs does not allow for readonly arrays, but that is a bug in their types
+      exports: this.getBaseExports(),
     };
   }
 }
