@@ -60,6 +60,7 @@
     "@nestjs/core": "^8.0.0 || ^9.0.0 || ^10.0.0",
     "@nestjs/platform-express": "^8.0.0 || ^9.0.0 || ^10.0.0",
     "@nestjs/schedule": "^2.0.0 || ^3.0.0 || ^4.0.0",
+    "@nestjs/swagger": "^7.1.0",
     "class-transformer": "^0.4.0",
     "class-validator": "^0.13.0",
     "cron": "^2.0.0 || ^3.0.0"
